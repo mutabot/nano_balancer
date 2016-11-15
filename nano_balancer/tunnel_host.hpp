@@ -199,7 +199,7 @@ namespace nano_balancer
 				{
 					auto next_node = next_upstream_();
 
-					tunnel_->start(next_node.ip(), next_node.port());
+					tunnel_->start(next_node.address, next_node.port);
 
 					if (!run())
 					{

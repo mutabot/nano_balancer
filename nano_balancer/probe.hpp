@@ -11,6 +11,7 @@
 #include <boost/atomic.hpp>
 #include "helper.hpp"
 #include <unordered_map>
+#include <unordered_set>
 
 #define QUEUE_CAPACITY 512
 
@@ -25,16 +26,17 @@ namespace nano_balancer
 		boost::asio::io_service& io_service;
 		boost::mutex mutex_;
 
-		std::unordered_map<unsigned long, ip_node_type> all_nodes;
-		boost::lockfree::queue<unsigned long> good_nodes;
-		boost::atomic<size_t> good_nodes_count;
+		std::unordered_map<size_t, ip_node_type> all_nodes;
+		std::unordered_set<size_t> good_nodes_set;
+		boost::lockfree::queue<size_t> good_nodes_queue;
+
 
 		void add_nodes(std::list<ip_node_type> nodes)
 		{
 			boost::mutex::scoped_lock lock(mutex_);
 			for (auto node : nodes)
 			{
-				all_nodes.insert_or_assign(node.hash(), node);
+				all_nodes.insert_or_assign(node.hash, node);
 			}
 		}
 
@@ -47,8 +49,6 @@ namespace nano_balancer
 		probe(boost::asio::io_service& ios, const std::string& config_file_name)
 			: config_name_(config_file_name),
 			io_service(ios),
-			good_nodes(QUEUE_CAPACITY),
-			good_nodes_count(0),
 			period(boost::posix_time::seconds(5)),
 			probe_timer(ios, period)
 		{
@@ -62,37 +62,55 @@ namespace nano_balancer
 
 		ip_node_type get_next_node()
 		{
-			boost::mutex::scoped_lock lock(mutex_);
-			unsigned long hash;
-			if (good_nodes.pop(hash))
+			size_t node_hash = 0;
+			if (good_nodes_queue.pop(node_hash))
 			{
-				if (good_nodes.empty())
-				{
-					good_nodes.push(hash);
-				}
-				auto node = all_nodes[hash];
-				std::cout << "Next: " << node.ip() << ":" << node.port() << std::endl;
-				return node;
+				// return to queue for round robbin
+				good_nodes_queue.push(node_hash);
+				auto node = all_nodes.at(node_hash);
+				std::cout << boost::this_thread::get_id() << "\tNext: " << node.address << ":" << node.port << std::endl;
 			}
 			auto node = all_nodes.begin()->second;
-			std::cout << "Fallback: " << node.ip() << ":" << node.port() << std::endl;
+			std::cout << boost::this_thread::get_id() << "\tFallback: " << node.address << ":" << node.port << std::endl;
 			return node;
 		}
 
 	protected:
 		void handle_connect(const boost::system::error_code& error, boost::shared_ptr<socket_type>& socket, ip_node_type& node)
 		{
+			boost::mutex::scoped_lock lock(mutex_);
 			if (!error)
 			{
-				std::cout << "Good: " << node.ip() << ":" << node.port() << std::endl;
-				while (good_nodes_count++ < QUEUE_CAPACITY / all_nodes.size())
+				std::cout << boost::this_thread::get_id() << "\tGood: " << node.address << ":" << node.port << std::endl;
+				if (good_nodes_set.find(node.hash) == good_nodes_set.end())
 				{
-					good_nodes.push(node.hash());
+					good_nodes_set.insert(node.hash);
+					good_nodes_queue.push(node.hash);
 				}
+				// do nothing if node already in good nodes collections
 			}
 			else
 			{
-				std::cout << "Bad: " << node.ip() << ":" << node.port() << std::endl;
+				std::cout << boost::this_thread::get_id() << "\tBad: " << node.address << ":" << node.port << std::endl;
+				if (good_nodes_set.find(node.hash) == good_nodes_set.end())
+				{
+					// remove from the queue
+					size_t hash = 0;
+					for (auto i = 0; i < good_nodes_set.size(); ++i)
+					{
+						if (!good_nodes_queue.pop(hash))
+						{
+							std::cerr << boost::this_thread::get_id() << "\tQueue is empty: " << node.address << ":" << node.port << std::endl;
+							break;
+						}
+						if (hash != node.hash)
+						{
+							good_nodes_queue.push(hash);
+						}
+					}
+					// remove from the good set
+					good_nodes_set.erase(node.hash);
+				}
 			}
 			if (socket->is_open())
 			{
@@ -100,10 +118,10 @@ namespace nano_balancer
 			}
 		}
 
-		void do_probe(ip_node_type node)
+		void do_probe(ip_node_type& node)
 		{
-			std::cout << "Probing: " << node.ip() << ":" << node.port() << std::endl;
-			ip::tcp::endpoint ep(node.ip(), node.port());
+			std::cout << boost::this_thread::get_id() << "\tProbing: " << node.address << ":" << node.port << std::endl;
+			ip::tcp::endpoint ep(node.address, node.port);
 			auto socket = boost::make_shared<socket_type>(io_service);
 			socket->async_connect(
 				ep,
@@ -121,14 +139,11 @@ namespace nano_balancer
 		{
 			probe_timer.expires_at(probe_timer.expires_at() + period);
 			probe_timer.async_wait(boost::bind(&probe::on_timer, shared_from_this(), boost::asio::placeholders::error));
-
+			boost::mutex::scoped_lock lock(mutex_);
+			for (auto pair : all_nodes)
 			{
-				boost::mutex::scoped_lock lock(mutex_);
-				for (auto node : all_nodes)
-				{
-					do_probe(node.second);
-				}
-			}
+				do_probe(pair.second);
+			}			
 		}
 	};
 }

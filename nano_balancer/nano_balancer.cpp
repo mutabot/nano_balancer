@@ -17,6 +17,7 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
+	std::cout << boost::this_thread::get_id() << std::endl;
 	const unsigned short local_port = static_cast<unsigned short>(::atoi(argv[2]));
 	const std::string local_host = argv[1];
 	const std::string forward_host_file = argv[3];
