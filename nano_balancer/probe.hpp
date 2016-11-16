@@ -49,6 +49,7 @@ namespace nano_balancer
 		probe(boost::asio::io_service& ios, const std::string& config_file_name)
 			: config_name_(config_file_name),
 			io_service(ios),
+			good_nodes_queue(512),
 			period(boost::posix_time::seconds(5)),
 			probe_timer(ios, period)
 		{
@@ -69,6 +70,7 @@ namespace nano_balancer
 				good_nodes_queue.push(node_hash);
 				auto node = all_nodes.at(node_hash);
 				std::cout << boost::this_thread::get_id() << "\tNext: " << node.address << ":" << node.port << std::endl;
+				return node;
 			}
 			auto node = all_nodes.begin()->second;
 			std::cout << boost::this_thread::get_id() << "\tFallback: " << node.address << ":" << node.port << std::endl;
