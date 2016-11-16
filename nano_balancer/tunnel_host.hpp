@@ -42,6 +42,7 @@ namespace nano_balancer
 
 		void start(const ip::address_v4& upstream_host, unsigned short upstream_port)
 		{
+			// std::cout << "connecting: " << upstream_host << ":" << upstream_port << std::endl;
 			upstream_.async_connect(
 				ip::tcp::endpoint(upstream_host,
 					upstream_port),
@@ -198,7 +199,6 @@ namespace nano_balancer
 				if (!error)
 				{
 					auto next_node = next_upstream_();
-
 					tunnel_->start(next_node.address, next_node.port);
 
 					if (!run())
