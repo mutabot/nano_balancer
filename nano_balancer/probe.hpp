@@ -73,7 +73,7 @@ namespace nano_balancer
 				// return to queue for round robbin
 				good_nodes_queue.push(node_hash);
 				auto node = all_nodes.at(node_hash);
-				std::cout << boost::this_thread::get_id() << "\tNext: " << node.address << ":" << node.port << std::endl;
+//				std::cout << boost::this_thread::get_id() << "\tNext: " << node.address << ":" << node.port << std::endl;
 				return node;
 			}
 			auto node = all_nodes.begin()->second;
