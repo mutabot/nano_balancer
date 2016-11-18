@@ -14,6 +14,18 @@ namespace nano_balancer
 	class helper
 	{
 	public:
+		static std::list<std::string> parse_master_config(const std::string& config_file_name)
+		{
+			std::list<std::string> result;
+			std::ifstream file(config_file_name);
+			std::string line;
+			while (std::getline(file, line))
+			{
+				result.push_back(line);
+			}
+			return result;
+		}
+
 		static std::list<ip_node_type> parse_config(const std::string& config_file_name)
 		{
 			std::list<ip_node_type> result;
