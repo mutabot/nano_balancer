@@ -8,6 +8,7 @@
 
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/bind.hpp>
+#include <boost/atomic.hpp>
 #include <boost/asio.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/function.hpp>
@@ -25,10 +26,27 @@ namespace nano_balancer
 		typedef ip::tcp::socket socket_type;
 		typedef boost::shared_ptr<tunnel> ptr_type;
 
-		explicit tunnel(boost::asio::io_service& ios)
-			: downstream_(ios),
-			upstream_(ios)
-		{}
+	private:
+		socket_type downstream_;
+		socket_type upstream_;
+
+		enum { buffer_size = 8192 };
+		unsigned char downstream_buffer_[buffer_size];
+		unsigned char upstream_buffer_[buffer_size];
+
+		boost::mutex mutex_;
+
+		boost::atomic<int> pending_operations;
+		boost::atomic<bool> error_flag;
+	public:
+
+		explicit tunnel(boost::asio::io_service& ios) :
+			downstream_(ios),
+			upstream_(ios),
+			pending_operations(0),
+			error_flag(false)
+		{			
+		}
 
 		socket_type& downstream_socket()
 		{
@@ -74,10 +92,25 @@ namespace nano_balancer
 		}
 
 	private:
+		bool check_error(const boost::system::error_code& error)
+		{
+			if ((error_flag || error) && pending_operations == 0)
+			{
+				close();
+				return false;
+			}
+			else if (error)
+			{
+				error_flag = true;
+				return false;
+			}
+			return true;
+		}
 
 		void handle_downstream_write(const boost::system::error_code& error)
 		{
-			if (!error)
+			--pending_operations;
+			if (check_error(error))
 			{
 				upstream_.async_read_some(
 					boost::asio::buffer(upstream_buffer_, buffer_size),
@@ -86,28 +119,26 @@ namespace nano_balancer
 						boost::asio::placeholders::error,
 						boost::asio::placeholders::bytes_transferred));
 			}
-			else
-				close();
 		}
 
 		void handle_downstream_read(const boost::system::error_code& error,
 			const size_t& bytes_transferred)
 		{
-			if (!error)
+			if (check_error(error))
 			{
+				++pending_operations;
 				async_write(upstream_,
 					boost::asio::buffer(downstream_buffer_, bytes_transferred),
 					boost::bind(&tunnel::handle_upstream_write,
 						shared_from_this(),
 						boost::asio::placeholders::error));
 			}
-			else
-				close();
 		}
 
 		void handle_upstream_write(const boost::system::error_code& error)
 		{
-			if (!error)
+			--pending_operations;
+			if (check_error(error))
 			{
 				downstream_.async_read_some(
 					boost::asio::buffer(downstream_buffer_, buffer_size),
@@ -116,23 +147,20 @@ namespace nano_balancer
 						boost::asio::placeholders::error,
 						boost::asio::placeholders::bytes_transferred));
 			}
-			else
-				close();
 		}
 
 		void handle_upstream_read(const boost::system::error_code& error,
 			const size_t& bytes_transferred)
 		{
-			if (!error)
+			if (check_error(error))
 			{
+				++pending_operations;
 				async_write(downstream_,
 					boost::asio::buffer(upstream_buffer_, bytes_transferred),
 					boost::bind(&tunnel::handle_downstream_write,
 						shared_from_this(),
 						boost::asio::placeholders::error));
 			}
-			else
-				close();
 		}
 
 		void close()
@@ -141,23 +169,16 @@ namespace nano_balancer
 
 			if (downstream_.is_open())
 			{
+				downstream_.shutdown(boost::asio::socket_base::shutdown_both);
 				downstream_.close();
 			}
 
 			if (upstream_.is_open())
 			{
+				upstream_.shutdown(boost::asio::socket_base::shutdown_both);
 				upstream_.close();
 			}
 		}
-
-		socket_type downstream_;
-		socket_type upstream_;
-
-		enum { buffer_size = 8192 };
-		unsigned char downstream_buffer_[buffer_size];
-		unsigned char upstream_buffer_[buffer_size];
-
-		boost::mutex mutex_;
 
 	public:		
 		class tunnel_host
