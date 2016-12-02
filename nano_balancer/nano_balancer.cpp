@@ -8,11 +8,13 @@
 #include "helper.hpp"
 #include <boost/process.hpp>
 #include <windows.h>
+#include "mdump.h"
 using namespace nano_balancer;
 
 
 int main(int argc, char* argv[])
 {
+	MiniDumper dumper("nano_balancer");
 	if (argc != 2 && argc < 4)
 	{
 		std::cerr << "usage: nano_balancer <master_config>\r\n\t nano_balancer <local host ip> <local port> <config>" << std::endl;
