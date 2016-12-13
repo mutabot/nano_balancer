@@ -73,11 +73,11 @@ namespace nano_balancer
 				// return to queue for round robbin
 				good_nodes_queue.push(node_hash);
 				auto node = all_nodes.at(node_hash);
-//				std::cout << boost::this_thread::get_id() << "\tNext: " << node.address << ":" << node.port << std::endl;
+//				std::cout  << "\tNext: " << node.address << ":" << node.port << std::endl;
 				return node;
 			}
 			auto node = all_nodes.begin()->second;
-			std::cout << boost::this_thread::get_id() << "\tFallback: " << node.address << ":" << node.port << std::endl;
+			std::cout  << "\tFallback: " << node.address << ":" << node.port << std::endl;
 			return node;
 		}
 
@@ -85,7 +85,7 @@ namespace nano_balancer
 		void add_good_node(ip_node_type& node)
 		{
 			boost::mutex::scoped_lock lock(mutex_);
-			std::cout << boost::this_thread::get_id() << "\tGood: " << node.address << ":" << node.port << std::endl;
+			std::cout  << "\tGood: " << node.address << ":" << node.port << std::endl;
 
 			if (good_nodes_set.find(node.hash) == good_nodes_set.end())
 			{
@@ -101,7 +101,7 @@ namespace nano_balancer
 		void remove_good_node(ip_node_type& node)
 		{
 			boost::mutex::scoped_lock lock(mutex_);
-			std::cout << boost::this_thread::get_id() << "\tBad: " << node.address << ":" << node.port << std::endl;
+			std::cout  << "\tBad: " << node.address << ":" << node.port << std::endl;
 			
 			// check if node exists in good notes set
 			if (good_nodes_set.find(node.hash) == good_nodes_set.end())
@@ -143,7 +143,7 @@ namespace nano_balancer
 
 		void do_probe(ip_node_type& node)
 		{
-			std::cout << boost::this_thread::get_id() << "\tProbing: " << node.address << ":" << node.port << std::endl;
+			std::cout  << "\tProbing: " << node.address << ":" << node.port << std::endl;
 			ip::tcp::endpoint ep(node.address, node.port);
 			auto socket = boost::make_shared<socket_type>(io_service);
 			socket->async_connect(

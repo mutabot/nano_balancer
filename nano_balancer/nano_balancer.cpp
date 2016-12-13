@@ -4,17 +4,22 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 #include <iostream>
 #include "tunnel_host.hpp"
+#include "process_host.hpp"
 #include "probe.hpp"
 #include "helper.hpp"
-#include <boost/process.hpp>
 #include <windows.h>
 #include "mdump.h"
-using namespace nano_balancer;
+#include "time_stamp_stream.hpp"
 
+using namespace nano_balancer;
 
 int main(int argc, char* argv[])
 {
 	MiniDumper dumper("nano_balancer");
+
+	time_stamp_stream stdout_time(std::cout);
+	time_stamp_stream stderr_time(std::cerr);
+
 	if (argc != 2 && argc < 4)
 	{
 		std::cerr << "usage: nano_balancer <master_config>\r\n\t nano_balancer <local host ip> <local port> <config>" << std::endl;
@@ -23,6 +28,7 @@ int main(int argc, char* argv[])
 
 	const auto is_child = argc > 3;
 	const std::string config_file = argv[is_child ? 3 : 1];
+	
 	try
 	{		
 		if (is_child)
@@ -51,23 +57,8 @@ int main(int argc, char* argv[])
 		{
 			// run as master host process
 			auto instances = helper::parse_master_config(config_file);
-			std::list<std::shared_ptr<boost::process::child>> children;
-			for (auto instance : instances)
-			{
-				boost::char_separator<char> sep(" ");
-				boost::tokenizer<boost::char_separator<char>> tok(instance, sep);
-				std::vector<std::string> cmd_line;
-				for (auto cs : tok)
-				{
-					cmd_line.push_back(cs);
-				}
-
-				children.push_back(std::make_shared<boost::process::child>("nano_balancer.exe", cmd_line));
-			}
-			for (auto child : children)
-			{
-				child->wait();
-			}
+			auto host = process_host(instances);
+			host.run();
 		}
 	}
 	catch (std::exception& e)

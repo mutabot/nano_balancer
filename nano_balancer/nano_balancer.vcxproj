@@ -223,6 +223,8 @@
   <ItemGroup>
     <ClInclude Include="ios_pool.hpp" />
     <ClInclude Include="mdump.h" />
+    <ClInclude Include="process_host.hpp" />
+    <ClInclude Include="time_stamp_stream.hpp" />
     <ClInclude Include="tunnel_host.hpp" />
     <ClInclude Include="helper.hpp" />
     <ClInclude Include="probe.hpp" />
