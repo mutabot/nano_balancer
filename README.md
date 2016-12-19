@@ -2,18 +2,19 @@ nano_balancer
 =============
 
 nano_balancer is a minimal footprint/maximum performance TCP proxy with a built-in probe service.
-Being a TCP nano_balancer does not process HTTP/HTTPS requests contents. nano_balancer routing configuration is based on pairing a source_ip:port to a list of [dest_ip:port] endpoints.
+Being a TCP balancer, nano_balancer does not process HTTP/HTTPS requests. 
+nano_balancer routing configuration is based on pairing a source_ip:port to a list of [dest_ip:port] endpoints.
 
 nano_balancer has a built-in process host that can launch multiple nano_balancer instances and re-launch instance in case if a child process have terminated.
 
 # Built-in Probe
-Nano Balancer includes a simplest TCP probe that attempts tcp connect to each target endpoint.
+nano_balancer includes a simplest TCP probe that attempts tcp connect to each target endpoint.
 Target endpoint is marked as healthy if tcp connect is successfull.
 Probe runs every 5 seconds and probes all target enpoints in the list per run.
 
 # Configuration
 ## Master Host Configuration
-Nano Balancer is a tiny application that binds to a single local IP address and port. In advanced application configurations binding load balancer to a multiple local IP:port combinations is required.
+nano_balancer is a tiny application that binds to a single local IP address and port. In advanced application configurations binding load balancer to a multiple local IP:port combinations is required.
 nano_balancer.exe includes a master host mode where master nano_balancer.exe launches multiple child nano_balancer.exe processes according to master configuration file.
 To run nano_balancer as a master host pass a master configuration file name as a single parameter to nano_balancer.exe:
 
