@@ -6,11 +6,11 @@
 #pragma once
 #include <map>
 #include <boost/process/child.hpp>
-#include <iostream>
 #include <boost/algorithm/string/join.hpp>
 #include <boost/token_functions.hpp>
 #include <boost/tokenizer.hpp>
-#include <iomanip>
+#include "logging.h"
+#include <boost/thread/thread.hpp>
 
 namespace nano_balancer
 {
@@ -22,30 +22,31 @@ namespace nano_balancer
 
 		std::list<std::shared_ptr<boost::process::child>> children;
 		std::map<boost::process::pid_t, cmd_line_type> child_l_map;
+		logger_type& logger_;
 
 		bool start_new_child(cmd_line_type cmd_line)
 		{
 			auto cmd_str = boost::algorithm::join(cmd_line, " ");
 			
-			std::cout << "Starting new: " << cmd_str << std::endl;
+			BOOST_LOG_SEV(logger_, trivial::info) << "Starting new: " << cmd_str;
 			auto new_child = std::make_shared<boost::process::child>("nano_balancer.exe", cmd_line);
 			
 			// check if child is failing immediately
 			if (new_child->wait_until(std::chrono::system_clock::time_point(std::chrono::system_clock::now() + std::chrono::seconds(2))))
 			{
-				std::cerr << "Failed to start new child: " << new_child->id() << std::endl;
+				BOOST_LOG_SEV(logger_, trivial::error) << "Failed to start new child: " << new_child->id();
 				return false;				
 			}
 
-			std::cout << "New child PID: " << new_child->id() << std::endl;
+			BOOST_LOG_SEV(logger_, trivial::info) << "New child PID: " << new_child->id();
 			child_l_map.insert_or_assign(new_child->id(), cmd_line);
 			children.push_back(new_child);
 			return true;			
 		}
 	public:
-		process_host(std::list<std::string>& instances) 
-		: instances_(instances)
-		{
+		process_host(logger_type& logger, std::list<std::string>& instances)
+		: instances_(instances), logger_(logger)
+	{
 		}
 
 		void run()
@@ -61,6 +62,8 @@ namespace nano_balancer
 				}
 
 				start_new_child(cmd_line);
+
+				// boost::this_thread::sleep(boost::posix_time::seconds(1));
 			}
 
 			while (true)
@@ -69,7 +72,7 @@ namespace nano_balancer
 				{
 					if (child->wait_until(std::chrono::system_clock::time_point(std::chrono::system_clock::now() + std::chrono::seconds(2))))
 					{
-						std::cerr << "Child is not running: " << child->id() << std::endl;
+						BOOST_LOG_SEV(logger_, trivial::error) << "Child is not running: " << child->id();
 
 						start_new_child(child_l_map[child->id()]);
 

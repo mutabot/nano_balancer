@@ -11,6 +11,7 @@
 #include "helper.hpp"
 #include <unordered_map>
 #include <unordered_set>
+#include "logging.h"
 
 namespace nano_balancer
 {
@@ -32,6 +33,7 @@ namespace nano_balancer
 		std::unordered_set<size_t> good_nodes_set;
 		boost::lockfree::queue<size_t> good_nodes_queue;
 		volatile std::atomic<size_t> queue_size;
+		logger_type& logger_;
 
 
 		void add_nodes(std::list<ip_node_type> nodes)
@@ -49,13 +51,13 @@ namespace nano_balancer
 
 	public:
 		typedef boost::shared_ptr<probe> ptr_type;
-		probe(boost::asio::io_service& ios, const std::string& config_file_name)
+		probe(logger_type& logger, boost::asio::io_service& ios, const std::string& config_file_name)
 			: config_name_(config_file_name),
 			io_service(ios),
 			good_nodes_queue(queue_capacity),
 			queue_size(0),
 			period(boost::posix_time::seconds(probe_period_sec)),
-			probe_timer(ios, boost::posix_time::millisec(1))
+			probe_timer(ios, boost::posix_time::millisec(1)), logger_(logger)
 		{
 			add_nodes(helper::parse_config(config_name_));
 		}
@@ -73,11 +75,11 @@ namespace nano_balancer
 				// return to queue for round robbin
 				good_nodes_queue.push(node_hash);
 				auto node = all_nodes.at(node_hash);
-//				std::cout  << "\tNext: " << node.address << ":" << node.port << std::endl;
+//				BOOST_LOG_SEV(logger_, trivial::info)  << "\tNext: " << node.address << ":" << node.port;
 				return node;
 			}
 			auto node = all_nodes.begin()->second;
-			std::cout  << "\tFallback: " << node.address << ":" << node.port << std::endl;
+			BOOST_LOG_SEV(logger_, trivial::info)  << "\tFallback: " << node.address << ":" << node.port;
 			return node;
 		}
 
@@ -85,7 +87,7 @@ namespace nano_balancer
 		void add_good_node(ip_node_type& node)
 		{
 			boost::mutex::scoped_lock lock(mutex_);
-			std::cout  << "\tGood: " << node.address << ":" << node.port << std::endl;
+			BOOST_LOG_SEV(logger_, trivial::info)  << "\tGood: " << node.address << ":" << node.port;
 
 			if (good_nodes_set.find(node.hash) == good_nodes_set.end())
 			{
@@ -101,7 +103,7 @@ namespace nano_balancer
 		void remove_good_node(ip_node_type& node)
 		{
 			boost::mutex::scoped_lock lock(mutex_);
-			std::cout  << "\tBad: " << node.address << ":" << node.port << std::endl;
+			BOOST_LOG_SEV(logger_, trivial::info)  << "\tBad: " << node.address << ":" << node.port;
 			
 			// check if node exists in good notes set
 			if (good_nodes_set.find(node.hash) == good_nodes_set.end())
@@ -143,7 +145,7 @@ namespace nano_balancer
 
 		void do_probe(ip_node_type& node)
 		{
-			std::cout  << "\tProbing: " << node.address << ":" << node.port << std::endl;
+			BOOST_LOG_SEV(logger_, trivial::info)  << "\tProbing: " << node.address << ":" << node.port;
 			ip::tcp::endpoint ep(node.address, node.port);
 			auto socket = boost::make_shared<socket_type>(io_service);
 			socket->async_connect(

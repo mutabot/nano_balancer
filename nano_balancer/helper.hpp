@@ -45,12 +45,12 @@ namespace nano_balancer
 					}
 					else
 					{
-						std::cerr << "Config line skipped: " << line << std::endl;
+						std::cerr << "Config line skipped: " << line;
 					}
 				}
 				catch (std::regex_error& e)
 				{
-					std::cerr << "Error: " << e.what() << std::endl;
+					std::cerr << "Error: " << e.what();
 				}
 			}
 			return result;

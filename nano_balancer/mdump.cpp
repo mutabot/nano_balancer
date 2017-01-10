@@ -17,7 +17,7 @@ MiniDumper::MiniDumper( LPCSTR szAppName )
 
 LONG MiniDumper::TopLevelFilter( struct _EXCEPTION_POINTERS *pExceptionInfo )
 {
-	std::cout << "Dumping ..." << std::endl;
+	std::cout << "Dumping ...";
 
 	LONG retval = EXCEPTION_CONTINUE_SEARCH;
 	HWND hParent = NULL;						// find a better value for your app
@@ -35,7 +35,7 @@ LONG MiniDumper::TopLevelFilter( struct _EXCEPTION_POINTERS *pExceptionInfo )
 
 	if (hDll == NULL)
 	{
-		std::cerr << "Failed to load DBGHELP.DLL" << std::endl;
+		std::cerr << "Failed to load DBGHELP.DLL";
 		return -1;
 	}
 
@@ -50,7 +50,7 @@ LONG MiniDumper::TopLevelFilter( struct _EXCEPTION_POINTERS *pExceptionInfo )
 
 			// work out a good place for the dump file
 			GetTempPath(_MAX_PATH, szDumpPath);
-			std::cerr << "Temp path: " << szDumpPath << std::endl;
+			std::cerr << "Temp path: " << szDumpPath;
 			boost::format fmt("%1%%2%.dmp");
 			fmt % m_szAppName % std::time(nullptr);
 			std::string path(fmt.str());
@@ -70,28 +70,28 @@ LONG MiniDumper::TopLevelFilter( struct _EXCEPTION_POINTERS *pExceptionInfo )
 				BOOL bOK = pDump(GetCurrentProcess(), GetCurrentProcessId(), hFile, MiniDumpNormal, &ExInfo, NULL, NULL);
 				if (bOK)
 				{
-					std::cout << "Dump saved to: " << path << std::endl;
+					std::cout << "Dump saved to: " << path;
 					retval = EXCEPTION_EXECUTE_HANDLER;
 				}
 				else
 				{
-					std::cerr << "Failed to save dump file to : " << path << ", Error:" << GetLastError() << std::endl;
+					std::cerr << "Failed to save dump file to : " << path << ", Error:" << GetLastError();
 				}
 				::CloseHandle(hFile);
 			}
 			else
 			{
-				std::cerr << "Failed to create dump file : " << path << ", Error:" << GetLastError() << std::endl;
+				std::cerr << "Failed to create dump file : " << path << ", Error:" << GetLastError();
 			}
 		}
 		else
 		{
-			std::cerr << "DBGHELP.DLL too old" << std::endl;
+			std::cerr << "DBGHELP.DLL too old";
 		}
 	}
 	else
 	{
-		std::cerr << "DBGHELP.DLL not found" << std::endl;
+		std::cerr << "DBGHELP.DLL not found";
 	}
 
 	return retval;

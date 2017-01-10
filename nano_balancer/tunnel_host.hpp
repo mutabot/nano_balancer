@@ -3,17 +3,15 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #pragma once;
-#include <iostream>
-#include <string>
 
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/bind.hpp>
-#include <boost/atomic.hpp>
 #include <boost/asio.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/function.hpp>
 #include <boost/make_shared.hpp>
 #include "types.h"
+#include "logging.h"
 
 namespace nano_balancer
 {
@@ -60,7 +58,7 @@ namespace nano_balancer
 
 		void start(const ip::address_v4& upstream_host, unsigned short upstream_port)
 		{
-			// std::cout << "connecting: " << upstream_host << ":" << upstream_port << std::endl;
+			// std::cout << "connecting: " << upstream_host << ":" << upstream_port;
 			upstream_.async_connect(
 				ip::tcp::endpoint(upstream_host,
 					upstream_port),
@@ -184,13 +182,14 @@ namespace nano_balancer
 		class tunnel_host
 		{
 		public:			
-			tunnel_host(boost::asio::io_service& io_service,
+			tunnel_host(logger_type& logger, 
+				boost::asio::io_service& io_service,
 				const std::string& local_host, unsigned short local_port,
 				boost::function<ip_node_type()> next_upstream)
 				: io_service_(io_service),
 				localhost_address(boost::asio::ip::address_v4::from_string(local_host)),
 				tcp_acceptor_(io_service_, ip::tcp::endpoint(localhost_address, local_port)),
-				next_upstream_(next_upstream)
+				next_upstream_(next_upstream), logger_(logger)
 			{}
 
 			bool run()
@@ -206,7 +205,7 @@ namespace nano_balancer
 				}
 				catch (std::exception& e)
 				{
-					std::cerr << "accept exception: " << e.what() << std::endl;
+					BOOST_LOG_SEV(logger_, trivial::error) << "accept exception: " << e.what();
 					return false;
 				}
 
@@ -224,12 +223,12 @@ namespace nano_balancer
 
 					if (!run())
 					{
-						std::cerr << "accept failed." << std::endl;
+						BOOST_LOG_SEV(logger_, trivial::error) << "accept failed.";
 					}
 				}
 				else
 				{
-					std::cerr << "Error: " << error.message() << std::endl;
+					BOOST_LOG_SEV(logger_, trivial::error) << "Error: " << error.message();
 				}
 			}
 
@@ -238,6 +237,7 @@ namespace nano_balancer
 			ip::tcp::acceptor tcp_acceptor_;
 			ptr_type tunnel_;
 			boost::function<ip_node_type()> next_upstream_;
+			logger_type logger_;
 		};
 	};
 }
