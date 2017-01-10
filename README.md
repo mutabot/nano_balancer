@@ -1,9 +1,11 @@
 nano_balancer
 =============
 
-nano_balancer is a minimal footprint/maximum performance TCP proxy with a built-in probe service.
-Being a TCP balancer, nano_balancer does not process HTTP/HTTPS requests. 
+nano_balancer is a minimal footprint/maximum performance TCP load balancer with a built-in probe service.
+Being a TCP -based load balancer, nano_balancer does not process HTTP/HTTPS requests. 
 nano_balancer routing configuration is based on pairing a source_ip:port to a list of [dest_ip:port] endpoints.
+
+nano_balancer is designed for routing network traffic in dynamically scaling environments such as Azure Service Fabric.
 
 nano_balancer has a built-in process host that can launch multiple nano_balancer instances and re-launch instance in case if a child process have terminated.
 
