@@ -12,6 +12,9 @@ nano_balancer includes a simplest TCP probe that attempts tcp connect to each ta
 Target endpoint is marked as healthy if tcp connect is successfull.
 Probe runs every 5 seconds and probes all target enpoints in the list per run.
 
+# Build
+Build with Boost 1.63 and Boost.Process (https://github.com/klemens-morgenstern/boost-process)
+
 # Configuration
 ## Master Host Configuration
 nano_balancer is a tiny application that binds to a single local IP address and port. In advanced application configurations binding load balancer to a multiple local IP:port combinations is required.
