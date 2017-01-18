@@ -103,8 +103,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Users\Supa\Documents\Audio\boost_1_62_0\;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\Supa\Documents\Audio\boost_1_62_0\lib64-msvc-14.0;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Users\Supa\Documents\Audio\boost_1_63_0\;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\Supa\Documents\Audio\boost_1_63_0\lib64-msvc-14.0;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -114,8 +114,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>C:\Users\Supa\Documents\Audio\boost_1_62_0\;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\Supa\Documents\Audio\boost_1_62_0\lib64-msvc-14.0;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Users\Supa\Documents\Audio\boost_1_63_0\;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\Supa\Documents\Audio\boost_1_63_0\lib64-msvc-14.0;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Unoptimized Release|x64'">
     <LinkIncremental>false</LinkIncremental>

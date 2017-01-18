@@ -11,6 +11,7 @@
 #include "mdump.h"
 #include "time_stamp_stream.hpp"
 #include "logging.h"
+#include "../../boost_1_62_0/boost/system/system_error.hpp"
 
 using namespace nano_balancer;
 
@@ -57,19 +58,29 @@ int main(int argc, char* argv[])
 			boost::asio::io_service ios;
 
 			auto probe = boost::make_shared<nano_balancer::probe>(lg, ios, config_file);
-			probe->start();
+			probe->start();			
 
-			tunnel::tunnel_host acceptor(
-				lg,
-				ios,
-				local_host,
-				local_port,
-				boost::bind(&probe::get_next_node, probe->shared_from_this())
-			);
-
-			acceptor.run();
-
-			ios.run();
+			// infinte loop
+			while (true)
+			try
+			{
+				BOOST_LOG_SEV(lg, trivial::info) << "Running tunnel...";
+				tunnel::tunnel_host acceptor(
+					lg,
+					ios,
+					local_host,
+					local_port,
+					boost::bind(&probe::get_next_node, probe->shared_from_this())
+				);
+				acceptor.run();
+				ios.run();
+			}
+			catch (boost::system::system_error& e)
+			{
+				BOOST_LOG_SEV(lg, trivial::error) << "Error in ios.run(): " << e.what();				
+				ios.reset();
+				BOOST_LOG_SEV(lg, trivial::info) << "Reset complete";
+			}			
 		}
 		else
 		{
@@ -84,7 +95,7 @@ int main(int argc, char* argv[])
 	}
 	catch (std::exception& e)
 	{
-		BOOST_LOG_SEV(lg, trivial::error) << "Error: " << e.what();
+		BOOST_LOG_SEV(lg, trivial::error) << "Fatal error: " << e.what();
 		return 1;
 	}
 

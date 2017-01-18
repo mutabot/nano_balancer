@@ -8,12 +8,14 @@
 #include "types.h"
 #include <fstream>
 #include <regex>
+#include "logging.h"
 
 namespace nano_balancer
 {
 	class helper
 	{
 	public:
+
 		static std::list<std::string> parse_master_config(const std::string& config_file_name)
 		{
 			std::list<std::string> result;
@@ -26,7 +28,7 @@ namespace nano_balancer
 			return result;
 		}
 
-		static std::list<ip_node_type> parse_config(const std::string& config_file_name)
+		static std::list<ip_node_type> parse_config(logger_type& lg, const std::string& config_file_name)
 		{
 			std::list<ip_node_type> result;
 			std::ifstream file(config_file_name);
@@ -45,15 +47,15 @@ namespace nano_balancer
 					}
 					else
 					{
-						std::cerr << "Config line skipped: " << line;
+						BOOST_LOG_SEV(lg, trivial::error) << "Error: Config line skipped: " << line;
 					}
 				}
 				catch (std::regex_error& e)
 				{
-					std::cerr << "Error: " << e.what();
+					BOOST_LOG_SEV(lg, trivial::error) << "Error: " << e.what();
 				}
 			}
 			return result;
-		}
+		}		
 	};
 };

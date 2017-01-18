@@ -23,6 +23,7 @@ namespace nano_balancer
 			queue_multiplier = 128,
 			probe_period_sec = 5
 		};
+		logger_type& logger_;
 		typedef boost::shared_ptr<boost::thread> thread_t;
 		typedef ip::tcp::socket socket_type;
 		boost::asio::detail::socket_type upstream_socket_;
@@ -33,7 +34,6 @@ namespace nano_balancer
 		std::unordered_set<size_t> good_nodes_set;
 		boost::lockfree::queue<size_t> good_nodes_queue;
 		volatile std::atomic<size_t> queue_size;
-		logger_type& logger_;
 
 
 		void add_nodes(std::list<ip_node_type> nodes)
@@ -52,14 +52,16 @@ namespace nano_balancer
 	public:
 		typedef boost::shared_ptr<probe> ptr_type;
 		probe(logger_type& logger, boost::asio::io_service& ios, const std::string& config_file_name)
-			: config_name_(config_file_name),
+			:
+			logger_(logger),
+			config_name_(config_file_name),
 			io_service(ios),
 			good_nodes_queue(queue_capacity),
 			queue_size(0),
 			period(boost::posix_time::seconds(probe_period_sec)),
-			probe_timer(ios, boost::posix_time::millisec(1)), logger_(logger)
+			probe_timer(ios, boost::posix_time::millisec(1))
 		{
-			add_nodes(helper::parse_config(config_name_));
+			add_nodes(helper::parse_config(logger_, config_name_));
 		}
 		
 		void start()
@@ -92,9 +94,10 @@ namespace nano_balancer
 			if (good_nodes_set.find(node.hash) == good_nodes_set.end())
 			{
 				good_nodes_set.insert(node.hash);
-				for (auto i = 0; i < queue_multiplier; ++i, ++queue_size) 
+				// fill the queue with the good node refs
+				for (auto i = 0; i < queue_multiplier; ++i) 
 				{
-					good_nodes_queue.push(node.hash);
+					queue_size += good_nodes_queue.push(node.hash) ? 1 : 0;
 				}
 			}
 			// do nothing if node already in good nodes collections
@@ -106,7 +109,7 @@ namespace nano_balancer
 			BOOST_LOG_SEV(logger_, trivial::info)  << "\tBad: " << node.address << ":" << node.port;
 			
 			// check if node exists in good notes set
-			if (good_nodes_set.find(node.hash) == good_nodes_set.end())
+			if (good_nodes_set.find(node.hash) != good_nodes_set.end())
 			{
 				// purge the the queue
 				size_t hash = 0;

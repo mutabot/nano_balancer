@@ -34,7 +34,7 @@ namespace nano_balancer
 			// check if child is failing immediately
 			if (new_child->wait_until(std::chrono::system_clock::time_point(std::chrono::system_clock::now() + std::chrono::seconds(2))))
 			{
-				BOOST_LOG_SEV(logger_, trivial::error) << "Failed to start new child: " << new_child->id();
+				BOOST_LOG_SEV(logger_, trivial::error) << "Error: Failed to start new child: " << new_child->id();
 				return false;				
 			}
 
@@ -72,7 +72,7 @@ namespace nano_balancer
 				{
 					if (child->wait_until(std::chrono::system_clock::time_point(std::chrono::system_clock::now() + std::chrono::seconds(2))))
 					{
-						BOOST_LOG_SEV(logger_, trivial::error) << "Child is not running: " << child->id();
+						BOOST_LOG_SEV(logger_, trivial::error) << "Error: Child is not running: " << child->id();
 
 						start_new_child(child_l_map[child->id()]);
 

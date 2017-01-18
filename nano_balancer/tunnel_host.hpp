@@ -25,6 +25,7 @@ namespace nano_balancer
 		typedef boost::shared_ptr<tunnel> ptr_type;
 
 	private:
+		logger_type logger_;
 		socket_type downstream_;
 		socket_type upstream_;
 
@@ -38,7 +39,8 @@ namespace nano_balancer
 		boost::atomic<bool> error_flag;
 	public:
 
-		explicit tunnel(boost::asio::io_service& ios) :
+		explicit tunnel(logger_type& logger, boost::asio::io_service& ios) :
+			logger_(logger),
 			downstream_(ios),
 			upstream_(ios),
 			pending_operations(0),
@@ -58,7 +60,7 @@ namespace nano_balancer
 
 		void start(const ip::address_v4& upstream_host, unsigned short upstream_port)
 		{
-			// std::cout << "connecting: " << upstream_host << ":" << upstream_port;
+			BOOST_LOG_SEV(logger_, trivial::debug) << "connecting: " << upstream_host << ":" << upstream_port;
 			upstream_.async_connect(
 				ip::tcp::endpoint(upstream_host,
 					upstream_port),
@@ -85,8 +87,11 @@ namespace nano_balancer
 						boost::asio::placeholders::error,
 						boost::asio::placeholders::bytes_transferred));
 			}
-			else
+			else 
+			{
+				BOOST_LOG_SEV(logger_, trivial::error) << "Error: Upstream connect failed: " << error.value() << ", " << error.message();
 				close();
+			}				
 		}
 
 	private:
@@ -94,6 +99,7 @@ namespace nano_balancer
 		{
 			if ((error_flag || error) && pending_operations == 0)
 			{
+				BOOST_LOG_SEV(logger_, trivial::error) << "Error: Check error: " << error.value() << ", " << error.message();
 				close();
 				return false;
 			}
@@ -165,16 +171,34 @@ namespace nano_balancer
 		{
 			boost::mutex::scoped_lock lock(mutex_);
 
-			if (downstream_.is_open())
+			try 
 			{
-				downstream_.shutdown(boost::asio::socket_base::shutdown_both);
+				if (downstream_.is_open())
+				{
+					downstream_.shutdown(boost::asio::socket_base::shutdown_both);
+					downstream_.close();
+				}
+			}
+			catch (std::exception& e)
+			{
+				BOOST_LOG_SEV(logger_, trivial::error) << "Error: Downstream close failed: " << e.what();
 				downstream_.close();
+				BOOST_LOG_SEV(logger_, trivial::error) << "Downstream closed";
 			}
 
-			if (upstream_.is_open())
+			try 
 			{
-				upstream_.shutdown(boost::asio::socket_base::shutdown_both);
+				if (upstream_.is_open())
+				{
+					upstream_.shutdown(boost::asio::socket_base::shutdown_both);
+					upstream_.close();
+				}
+			}
+			catch (std::exception& e)
+			{
+				BOOST_LOG_SEV(logger_, trivial::error) << "Error: Upstream close failed: " << e.what();
 				upstream_.close();
+				BOOST_LOG_SEV(logger_, trivial::error) << "Upstream closed";
 			}
 		}
 
@@ -196,7 +220,7 @@ namespace nano_balancer
 			{
 				try
 				{
-					tunnel_ = boost::make_shared<tunnel>(io_service_);
+					tunnel_ = boost::make_shared<tunnel>(logger_, io_service_);
 
 					tcp_acceptor_.async_accept(tunnel_->downstream_socket(),
 						boost::bind(&tunnel_host::handle_accept,
@@ -205,7 +229,7 @@ namespace nano_balancer
 				}
 				catch (std::exception& e)
 				{
-					BOOST_LOG_SEV(logger_, trivial::error) << "accept exception: " << e.what();
+					BOOST_LOG_SEV(logger_, trivial::error) << "Error: Accept exception: " << e.what();
 					return false;
 				}
 
@@ -223,7 +247,7 @@ namespace nano_balancer
 
 					if (!run())
 					{
-						BOOST_LOG_SEV(logger_, trivial::error) << "accept failed.";
+						BOOST_LOG_SEV(logger_, trivial::error) << "Error: Accept failed.";
 					}
 				}
 				else
