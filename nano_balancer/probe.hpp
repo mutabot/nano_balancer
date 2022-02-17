@@ -3,7 +3,7 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#pragma once;
+#pragma once
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>
@@ -29,7 +29,7 @@ namespace nano_balancer
 		boost::asio::detail::socket_type upstream_socket_;
 		const std::string& config_name_;
 		boost::asio::io_service& io_service;
-		boost::mutex mutex_;		
+		boost::mutex mutex_;
 		std::unordered_map<size_t, ip_node_type> all_nodes;
 		std::unordered_set<size_t> good_nodes_set;
 		boost::lockfree::queue<size_t> good_nodes_queue;
@@ -58,15 +58,15 @@ namespace nano_balancer
 			io_service(ios),
 			good_nodes_queue(queue_capacity),
 			queue_size(0),
-			period(boost::posix_time::seconds(probe_period_sec)),
+			period(boost::posix_time::seconds(5)),
 			probe_timer(ios, boost::posix_time::millisec(1))
 		{
 			add_nodes(helper::parse_config(logger_, config_name_));
 		}
-		
+
 		void start()
 		{
-			probe_timer.async_wait(boost::bind(&probe::on_timer, shared_from_this(), boost::asio::placeholders::error));
+			// probe_timer.async_wait(boost::bind(&probe::on_timer, shared_from_this(), boost::asio::placeholders::error));
 		}
 
 		ip_node_type get_next_node()
@@ -95,7 +95,7 @@ namespace nano_balancer
 			{
 				good_nodes_set.insert(node.hash);
 				// fill the queue with the good node refs
-				for (auto i = 0; i < queue_multiplier; ++i) 
+				for (auto i = 0; i < queue_multiplier; ++i)
 				{
 					queue_size += good_nodes_queue.push(node.hash) ? 1 : 0;
 				}
@@ -107,7 +107,7 @@ namespace nano_balancer
 		{
 			boost::mutex::scoped_lock lock(mutex_);
 			BOOST_LOG_SEV(logger_, trivial::info)  << "\tBad: " << node.address << ":" << node.port;
-			
+
 			// check if node exists in good notes set
 			if (good_nodes_set.find(node.hash) != good_nodes_set.end())
 			{
@@ -167,12 +167,12 @@ namespace nano_balancer
 		{
 			probe_timer.expires_at(probe_timer.expires_at() + period);
 			probe_timer.async_wait(boost::bind(&probe::on_timer, shared_from_this(), boost::asio::placeholders::error));
-			
+
 			boost::mutex::scoped_lock lock(mutex_);
 			for (auto pair : all_nodes)
 			{
 				do_probe(pair.second);
-			}			
+			}
 		}
 	};
 }

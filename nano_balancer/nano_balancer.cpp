@@ -11,7 +11,7 @@
 #include "mdump.h"
 #include "time_stamp_stream.hpp"
 #include "logging.h"
-#include "../../boost_1_62_0/boost/system/system_error.hpp"
+#include <boost/system/system_error.hpp>
 
 using namespace nano_balancer;
 
@@ -23,7 +23,7 @@ int main(int argc, char* argv[])
 	);
 	logging::add_common_attributes();
 
-	
+
 	logger_type lg;
 
 	MiniDumper dumper("nano_balancer");
@@ -39,9 +39,9 @@ int main(int argc, char* argv[])
 
 	const auto is_child = argc > 3;
 	const std::string config_file = argv[is_child ? 3 : 1];
-	
+
 	try
-	{		
+	{
 		if (is_child)
 		{
 			// run as load balancer
@@ -54,11 +54,11 @@ int main(int argc, char* argv[])
 			add_log_file(child_log_name.str());
 
 			BOOST_LOG_SEV(lg, trivial::info) << "Running as child on: " << local_host << ":" << local_port;
-			
+
 			boost::asio::io_service ios;
 
 			auto probe = boost::make_shared<nano_balancer::probe>(lg, ios, config_file);
-			probe->start();			
+			probe->start();
 
 			// infinte loop
 			while (true)
@@ -77,10 +77,10 @@ int main(int argc, char* argv[])
 			}
 			catch (boost::system::system_error& e)
 			{
-				BOOST_LOG_SEV(lg, trivial::error) << "Error in ios.run(): " << e.what();				
+				BOOST_LOG_SEV(lg, trivial::error) << "Error in ios.run(): " << e.what();
 				ios.reset();
 				BOOST_LOG_SEV(lg, trivial::info) << "Reset complete";
-			}			
+			}
 		}
 		else
 		{

@@ -2,7 +2,7 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#pragma once;
+#pragma once
 
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/bind.hpp>
@@ -45,7 +45,7 @@ namespace nano_balancer
 			upstream_(ios),
 			pending_operations(0),
 			error_flag(false)
-		{			
+		{
 		}
 
 		socket_type& downstream_socket()
@@ -87,11 +87,11 @@ namespace nano_balancer
 						boost::asio::placeholders::error,
 						boost::asio::placeholders::bytes_transferred));
 			}
-			else 
+			else
 			{
 				BOOST_LOG_SEV(logger_, trivial::error) << "Error: Upstream connect failed: " << error.value() << ", " << error.message();
 				close();
-			}				
+			}
 		}
 
 	private:
@@ -171,7 +171,7 @@ namespace nano_balancer
 		{
 			boost::mutex::scoped_lock lock(mutex_);
 
-			try 
+			try
 			{
 				if (downstream_.is_open())
 				{
@@ -186,7 +186,7 @@ namespace nano_balancer
 				BOOST_LOG_SEV(logger_, trivial::error) << "Downstream closed";
 			}
 
-			try 
+			try
 			{
 				if (upstream_.is_open())
 				{
@@ -202,11 +202,11 @@ namespace nano_balancer
 			}
 		}
 
-	public:		
+	public:
 		class tunnel_host
 		{
-		public:			
-			tunnel_host(logger_type& logger, 
+		public:
+			tunnel_host(logger_type& logger,
 				boost::asio::io_service& io_service,
 				const std::string& local_host, unsigned short local_port,
 				boost::function<ip_node_type()> next_upstream)
